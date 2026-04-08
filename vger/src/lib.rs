@@ -98,7 +98,7 @@ impl VgerRenderer {
             width,
             height,
             present_mode: wgpu::PresentMode::AutoVsync,
-            alpha_mode: wgpu::CompositeAlphaMode::Auto,
+            alpha_mode: wgpu::CompositeAlphaMode::PreMultiplied,
             view_formats: vec![],
             desired_maximum_frame_latency: latency,
         };
@@ -720,7 +720,7 @@ impl Renderer for VgerRenderer {
                         view: &texture_view,
                         resolve_target: None,
                         ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::BLUE),
+                            load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
                             store: StoreOp::Store,
                         },
                         depth_slice: None,
