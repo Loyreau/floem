@@ -720,7 +720,7 @@ impl Renderer for VgerRenderer {
                         view: &texture_view,
                         resolve_target: None,
                         ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                            load: wgpu::LoadOp::Clear(wgpu::Color::BLUE),
                             store: StoreOp::Store,
                         },
                         depth_slice: None,
