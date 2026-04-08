@@ -477,6 +477,7 @@ impl WindowHandle {
 
     pub(crate) fn size(&mut self, size: Size) {
         let width_changed = (self.window_state.root_size.width - size.width).abs() > f64::EPSILON;
+        let size = Size::new(size.width / 2., size.height);
         self.size.set(size);
 
         // Update root size first so any style work triggered by resize observes
@@ -819,6 +820,16 @@ impl WindowHandle {
             .renderer_mut()
             .begin(cx.window_state.capture.is_some());
 
+        let renderer = cx.paint_state.renderer_mut();
+        let physical_size = renderer.size();
+        let test_brush = peniko::Brush::Solid(peniko::Color::from_rgba8(255, 0, 0, 128));
+        let left_half = peniko::kurbo::Rect::new(
+            0.0,
+            0.0,
+            physical_size.width / 2.0,
+            physical_size.height
+        );
+
         // Background fill (unchanged)
         if !self.transparent {
             let color = self
@@ -829,8 +840,10 @@ impl WindowHandle {
 
             // Fill the full render target. The renderer now operates in device space
             // during paint, so this must use the physical surface size, not logical size.
-            let renderer = cx.paint_state.renderer_mut();
+            // let renderer = cx.paint_state.renderer_mut();
             renderer.fill(&renderer.size().to_rect().expand(), &color, 0.0);
+        } else {
+            renderer.fill(&left_half, &test_brush, 0.0);
         }
 
         // Paint main tree with overlays using explicit traversal
