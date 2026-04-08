@@ -99,7 +99,13 @@ impl VelloRenderer {
             width,
             height,
             present_mode: wgpu::PresentMode::AutoVsync,
-            alpha_mode: wgpu::CompositeAlphaMode::PreMultiplied,
+            alpha_mode: if cfg!(target_os = "windows") {
+                wgpu::CompositeAlphaMode::PreMultiplied
+            } else if cfg!(target_os = "macos") {
+                wgpu::CompositeAlphaMode::PostMultiplied
+            } else {
+                wgpu::CompositeAlphaMode::Auto
+            },
             view_formats: vec![],
             desired_maximum_frame_latency: latency,
         };

@@ -28,6 +28,7 @@ use floem_renderer::Renderer;
 use floem_renderer::gpu_resources::GpuResources;
 use peniko::color::palette;
 use peniko::kurbo::{self, Point, Size};
+use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 use winit::{
     cursor::CursorIcon,
     dpi::{LogicalPosition, LogicalSize},

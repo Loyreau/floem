@@ -12,6 +12,8 @@ use wgpu::web_sys;
 use floem_reactive::{Runtime, SignalUpdate};
 use peniko::kurbo::{Point, Size};
 use std::{collections::HashMap, rc::Rc, time::Duration};
+use raw_window_handle::HasWindowHandle;
+use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 use winit::{
     dpi::{LogicalPosition, LogicalSize},
     event::WindowEvent,
@@ -626,6 +628,13 @@ impl ApplicationHandle {
                 if let RawWindowHandle::AppKit(app_kit) = wh.as_raw() {
                     let _ = setup_traffic_light_constraints_all_pixels(&app_kit, x, y, 6.);
                 }
+            }
+        }
+        #[cfg(target_os = "macos")]
+        if transparent {
+            if let Ok(window_handle) = window.window_handle() {
+                apply_vibrancy(window_handle, NSVisualEffectMaterial::UnderWindowBackground, None, None)
+                    .unwrap()
             }
         }
         let window_id = window.id();
