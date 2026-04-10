@@ -28,7 +28,7 @@ use floem_renderer::Renderer;
 use floem_renderer::gpu_resources::GpuResources;
 use peniko::color::palette;
 use peniko::kurbo::{self, Point, Size};
-use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
+
 use winit::{
     cursor::CursorIcon,
     dpi::{LogicalPosition, LogicalSize},
@@ -372,6 +372,45 @@ impl WindowHandle {
     }
 
     pub(crate) fn init_renderer(&mut self) {
+        // macOS: make CAMatelLayer non-opaque so vibrancy effect could show through transparent area.
+        #[cfg(target_os = "macos")]
+        if self.transparent {
+            use raw_window_handle::HasWindowHandle;
+            if let Ok(wh) = self.window.window_handle() {
+                use raw_window_handle::RawWindowHandle;
+                if let RawWindowHandle::AppKit(handle) = wh.as_raw() {
+                    unsafe {
+                        use objc2::msg_send;
+                        use objc2::encode::{Encoding, RefEncode};
+                        use objc2::runtime::AnyObject;
+                        #[repr(C)]
+                        struct CGColor {
+                            _priv: [u8; 0],
+                        }
+
+                        unsafe impl RefEncode for CGColor {
+                            const ENCODING_REF: Encoding = Encoding::Pointer(&Encoding::Struct("CGColor", &[]));
+                        }
+                        let ns_view: &AnyObject = handle.ns_view.cast::<AnyObject>().as_ref();
+                        let layer: Option<&AnyObject> = msg_send![ns_view, layer];
+                        if let Some(layer) = layer {
+                            let _: () = msg_send![layer, setOpaque: false];
+                            let _: () = msg_send![layer, setBackgroundColor: std::ptr::null::<CGColor>()];
+                        }
+                        
+                        let blurred_view: Option<&AnyObject> = msg_send![ns_view, viewWithTag: 91376254_isize];
+                        if let Some(blurred_view) = blurred_view {
+                            let _: () = msg_send![blurred_view, setWantsLayer: true];
+                            let blurred_layer: Option<&AnyObject> = msg_send![blurred_view, layer];
+                            if let Some(blurred_layer) = blurred_layer {
+                                let _: () = msg_send![blurred_layer, setZPosition: -1.0_f64];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // On the web, we need to get the canvas size once. The size will be updated automatically
         // when the canvas element is resized subsequently. This is the correct place to do so
         // because the renderer is not initialized until now.
@@ -822,14 +861,6 @@ impl WindowHandle {
             .begin(cx.window_state.capture.is_some());
 
         let renderer = cx.paint_state.renderer_mut();
-        let physical_size = renderer.size();
-        let test_brush = peniko::Brush::Solid(peniko::Color::from_rgba8(255, 0, 0, 128));
-        let left_half = peniko::kurbo::Rect::new(
-            0.0,
-            0.0,
-            physical_size.width / 2.0,
-            physical_size.height
-        );
 
         // Background fill (unchanged)
         if !self.transparent {
@@ -841,10 +872,7 @@ impl WindowHandle {
 
             // Fill the full render target. The renderer now operates in device space
             // during paint, so this must use the physical surface size, not logical size.
-            // let renderer = cx.paint_state.renderer_mut();
             renderer.fill(&renderer.size().to_rect().expand(), &color, 0.0);
-        } else {
-            renderer.fill(&left_half, &test_brush, 0.0);
         }
 
         // Paint main tree with overlays using explicit traversal

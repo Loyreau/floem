@@ -22,6 +22,9 @@ use crate::AnyView;
 use crate::app::{AppUpdateEvent, add_app_update_event};
 use crate::view::IntoView;
 
+#[cfg(target_os = "macos")]
+pub use window_vibrancy::NSVisualEffectMaterial;
+
 pub struct WindowCreation {
     pub(crate) view_fn: Box<dyn FnOnce(WindowId) -> AnyView>,
     pub(crate) config: Option<WindowConfig>,
@@ -305,6 +308,7 @@ pub struct MacOSWindowConfig {
     pub(crate) has_shadow: Option<bool>,
     pub(crate) disallow_high_dpi: Option<bool>,
     pub(crate) panel: Option<bool>,
+    pub(crate) vibrancy_material: Option<window_vibrancy::NSVisualEffectMaterial>,
 }
 
 impl MacOSWindowConfig {
@@ -402,6 +406,14 @@ impl MacOSWindowConfig {
     /// Set whether the window is a panel
     pub fn panel(mut self, val: bool) -> Self {
         self.panel = Some(val);
+        self
+    }
+
+    /// Set the vibrancy material for the window background.
+    /// Only takes effect when the window is configured as transparent.
+    /// Defaults to `NSVisualEffectMaterial::UnderWindowBackground` if not set.
+    pub fn vibrancy_material(mut self, material: window_vibrancy::NSVisualEffectMaterial) -> Self {
+        self.vibrancy_material = Some(material);
         self
     }
 }

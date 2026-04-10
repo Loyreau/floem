@@ -13,7 +13,7 @@ use floem_reactive::{Runtime, SignalUpdate};
 use peniko::kurbo::{Point, Size};
 use std::{collections::HashMap, rc::Rc, time::Duration};
 use raw_window_handle::HasWindowHandle;
-use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
+use window_vibrancy::apply_vibrancy;
 use winit::{
     dpi::{LogicalPosition, LogicalSize},
     event::WindowEvent,
@@ -632,9 +632,32 @@ impl ApplicationHandle {
         }
         #[cfg(target_os = "macos")]
         if transparent {
-            if let Ok(window_handle) = window.window_handle() {
-                apply_vibrancy(window_handle, NSVisualEffectMaterial::UnderWindowBackground, None, None)
-                    .unwrap()
+            let material = mac_os_config
+                .as_ref()
+                .and_then(|c| c.vibrancy_material);
+            if let Some(material) = material {
+                if let Ok(window_handle) = window.window_handle() {
+                    apply_vibrancy(window_handle, material, None, None).unwrap();
+                    
+                    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+                    if let Ok(wh) = window.window_handle() {
+                        if let RawWindowHandle::AppKit(handle) = wh.as_raw() {
+                            unsafe {
+                                use objc2::msg_send;
+                                use objc2::runtime::AnyObject;
+                                let ns_view: &AnyObject = handle.ns_view.cast::<AnyObject>().as_ref();
+                                let blurred_view: Option<&AnyObject> = msg_send![ns_view, viewWithTag: 91376254_isize];
+                                if let Some(blurred_view) = blurred_view {
+                                    let _: () = msg_send![blurred_view, setWantsLayer: true];
+                                    let blurred_layer: Option<&AnyObject> = msg_send![blurred_view, layer];
+                                    if let Some(blurred_layer) = blurred_layer {
+                                        let _: () = msg_send![blurred_layer, setZPosition: -1.0_f64];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         let window_id = window.id();
